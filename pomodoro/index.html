@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>极简番茄钟</title>
+  <style>
+    :root{
+      --bg:#070A12; --fg:#EAF2FF; --mut:#93A4BF;
+      --a:#6BE3FF; --b:#A7FF83; --c:#FF6BCB;
+      --card: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.10);
+    }
+    html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 20% 10%, rgba(107,227,255,.14), transparent 55%),
+                                 radial-gradient(900px 700px at 85% 75%, rgba(255,107,203,.10), transparent 55%),
+                                 linear-gradient(180deg, #05060B, var(--bg));
+      color:var(--fg); font-family: system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Microsoft YaHei,sans-serif; overflow:hidden;}
+    .wrap{height:100%;display:grid;place-items:center;padding:22px;}
+    .card{width:min(520px, 92vw); background:var(--card); border:1px solid var(--stroke);
+      border-radius:22px; box-shadow: 0 30px 80px rgba(0,0,0,.45); padding:22px 22px 18px; backdrop-filter: blur(10px);
+    }
+    .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;}
+    .title{font-weight:800;letter-spacing:.08em;font-size:14px;color:rgba(234,242,255,.85)}
+    .modes{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    button{border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04);
+      color:rgba(234,242,255,.9); border-radius:999px; padding:8px 12px; font-weight:650;
+      cursor:pointer; user-select:none; transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    }
+    button:hover{background: rgba(255,255,255,.06);}
+    button:active{transform: translateY(1px);}
+    button.primary{border-color: rgba(107,227,255,.35); background: rgba(107,227,255,.10)}
+    button.danger{border-color: rgba(255,107,203,.35); background: rgba(255,107,203,.10)}
+    .main{display:grid;grid-template-columns: 1fr; gap:16px; align-items:center; justify-items:center; padding: 10px 0 6px;}
+    .ring{width:min(320px, 70vw); aspect-ratio:1/1; display:grid; place-items:center; position:relative;}
+    svg{width:100%;height:100%;}
+    .time{position:absolute; inset:0; display:grid; place-items:center; text-align:center;}
+    .clock{font-size: clamp(42px, 7vw, 64px); font-weight:900; letter-spacing:.03em}
+    .sub{margin-top:6px; color:var(--mut); font-size:12px; letter-spacing:.08em}
+    .controls{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+    .row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%}
+    .meta{display:flex;justify-content:space-between;gap:12px; color:rgba(147,164,191,.9);
+      font-size:12px; margin-top:10px;}
+    a{color:rgba(107,227,255,.9); text-decoration:none}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      border:1px solid rgba(255,255,255,.14); border-bottom-color: rgba(255,255,255,.10);
+      padding:2px 6px; border-radius:8px; background: rgba(0,0,0,.18); color: rgba(234,242,255,.88)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top">
+        <div class="title">极简番茄钟 / Minimal Pomodoro</div>
+        <div class="modes">
+          <button id="m25" class="primary">专注 25</button>
+          <button id="m5">休息 5</button>
+          <button id="m15">长休息 15</button>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="ring">
+          <svg viewBox="0 0 120 120" aria-label="progress ring">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#6BE3FF" stop-opacity="0.95" />
+                <stop offset="0.55" stop-color="#A7FF83" stop-opacity="0.85" />
+                <stop offset="1" stop-color="#FF6BCB" stop-opacity="0.85" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="8" />
+            <circle id="prog" cx="60" cy="60" r="50" fill="none" stroke="url(#g)" stroke-linecap="round" stroke-width="8"
+              transform="rotate(-90 60 60)" />
+          </svg>
+          <div class="time">
+            <div>
+              <div id="clock" class="clock">25:00</div>
+              <div id="label" class="sub">专注中</div>
+              <div class="sub">快捷键：<span class="kbd">Space</span> 开始/暂停 · <span class="kbd">R</span> 重置</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="row">
+            <button id="toggle" class="primary">开始</button>
+            <button id="reset" class="danger">重置</button>
+          </div>
+          <div class="row">
+            <button id="minus">- 1 分钟</button>
+            <button id="plus">+ 1 分钟</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div>状态：<span id="state">就绪</span></div>
+        <div>提示：允许通知可在结束时弹提醒（可选）</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const $ = (id)=>document.getElementById(id);
+  const prog = $("prog");
+  const clock = $("clock");
+  const label = $("label");
+  const state = $("state");
+
+  const C = 2 * Math.PI * 50;
+  prog.style.strokeDasharray = `${C}`;
+
+  let total = 25 * 60;
+  let left = total;
+  let running = false;
+  let t = null;
+
+  function fmt(s){
+    s = Math.max(0, Math.round(s));
+    const m = Math.floor(s/60);
+    const r = s%60;
+    return `${String(m).padStart(2,0)}:${String(r).padStart(2,0)}`;
+  }
+
+  function setRing(){
+    const p = total ? (left/total) : 0;
+    prog.style.strokeDashoffset = `${C * (1 - p)}`;
+  }
+
+  function render(){
+    clock.textContent = fmt(left);
+    setRing();
+    document.title = `${fmt(left)} · 番茄钟`;
+  }
+
+  async function notifyDone(){
+    try{
+      if("Notification" in window){
+        if(Notification.permission === "default") await Notification.requestPermission();
+        if(Notification.permission === "granted") new Notification("时间到啦", { body: "休息一下，或者开始下一轮专注。"});
+      }
+    }catch(e){}
+  }
+
+  function setMode(name, minutes){
+    running = false; clearInterval(t); t=null;
+    total = Math.max(60, Math.round(minutes*60));
+    left = total;
+    label.textContent = name;
+    $("toggle").textContent = "开始";
+    state.textContent = "就绪";
+    render();
+  }
+
+  function start(){
+    if(running) return;
+    running = true;
+    state.textContent = "计时中";
+    $("toggle").textContent = "暂停";
+    const tick = () => {
+      left -= 1;
+      if(left <= 0){
+        left = 0;
+        render();
+        pause();
+        state.textContent = "已结束";
+        notifyDone();
+        return;
+      }
+      render();
+    };
+    t = setInterval(tick, 1000);
+  }
+
+  function pause(){
+    running = false;
+    if(t) clearInterval(t);
+    t = null;
+    $("toggle").textContent = "开始";
+    if(left > 0) state.textContent = "已暂停";
+  }
+
+  function toggle(){ running ? pause() : start(); }
+
+  function reset(){
+    pause();
+    left = total;
+    state.textContent = "就绪";
+    render();
+  }
+
+  function bump(deltaMin){
+    pause();
+    total = Math.max(60, total + deltaMin*60);
+    left = Math.min(total, left + deltaMin*60);
+    render();
+  }
+
+  // wire
+  $("toggle").addEventListener("click", toggle);
+  $("reset").addEventListener("click", reset);
+  $("minus").addEventListener("click", ()=>bump(-1));
+  $("plus").addEventListener("click", ()=>bump(1));
+
+  $("m25").addEventListener("click", ()=>setMode("专注中", 25));
+  $("m5").addEventListener("click", ()=>setMode("休息", 5));
+  $("m15").addEventListener("click", ()=>setMode("长休息", 15));
+
+  addEventListener("keydown", (e)=>{
+    if(e.code === "Space"){ e.preventDefault(); toggle(); }
+    if(e.key.toLowerCase() === "r"){ reset(); }
+  });
+
+  render();
+</script>
+</body>
+</html>
