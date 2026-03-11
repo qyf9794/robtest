@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>今日天气海报 · 2026-03-11</title>
+  <style>
+    :root{ --bg:#070A12; --fg:#EAF2FF; --mut:rgba(234,242,255,.66); --a:#6BE3FF; --b:#A7FF83; --c:#FF6BCB; }
+    html,body{height:100%;margin:0;overflow:hidden;background:radial-gradient(1200px 800px at 20% 10%, rgba(107,227,255,.15), transparent 55%),
+                                 radial-gradient(900px 700px at 85% 75%, rgba(255,107,203,.12), transparent 55%),
+                                 linear-gradient(180deg, #05060B, var(--bg));
+      color:var(--fg); font-family: system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Microsoft YaHei,sans-serif; }
+    canvas{display:block;}
+    .hud{position:fixed; inset:0; pointer-events:none; display:grid; place-items:center;}
+    .card{pointer-events:none; width:min(820px, 92vw); padding:22px 22px 18px;
+      border-radius:22px; background: rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 30px 80px rgba(0,0,0,.45); backdrop-filter: blur(10px); }
+    .top{display:flex; justify-content:space-between; gap:12px; align-items:flex-start;}
+    .title{font-weight:900; letter-spacing:.08em; font-size:12px; color:rgba(234,242,255,.75)}
+    .big{font-weight:950; font-size: clamp(26px, 4.4vw, 44px); margin-top:6px; line-height:1.05;}
+    .desc{margin-top:10px; color:var(--mut); font-size:13px; line-height:1.5}
+    .hint{margin-top:10px; color:rgba(147,164,191,.95); font-size:12px}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      border:1px solid rgba(255,255,255,.14); padding:2px 6px; border-radius:8px; background: rgba(0,0,0,.18); color: rgba(234,242,255,.88)}
+    a{color:rgba(107,227,255,.95); text-decoration:none}
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="hud">
+    <div class="card">
+      <div class="top">
+        <div>
+          <div class="title">Daily HTML · 2026-03-11</div>
+          <div class="big">今日天气海报</div>
+          <div class="desc">输入城市，生成一张带渐变与图形元素的“天气海报”。</div>
+          <div class="hint">操作：移动鼠标/手指改变节奏 · 点击换句子 · <span class="kbd">R</span> 随机重生</div>
+        </div>
+        <div style="text-align:right">
+          <div class="title">目录</div>
+          <div class="desc"><a href="https://qyf9794.github.io/robtest/">robtest</a> · <a href="https://qyf9794.github.io/robtest/daily/">daily</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  let W=0,H=0,dpr=1;
+  function resize(){
+    dpr = Math.max(1, devicePixelRatio||1);
+    W = innerWidth; H = innerHeight;
+    cv.width = W*dpr; cv.height = H*dpr;
+    cv.style.width=W+'px'; cv.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  addEventListener('resize', resize); resize();
+
+  const lines = [
+    '把一天切成小片，照亮其中一片。',
+    '先动起来，再谈完美。',
+    '今天的你，已经在路上。',
+    '给注意力一张椅子。',
+    '慢一点也没关系，只要不停。'
+  ];
+  let li = 0;
+
+  function rand(n){ return Math.random()*n; }
+  let seed = Math.random()*9999;
+  let mx = 0.5, my = 0.5;
+  addEventListener('pointermove', e=>{ mx = e.clientX/W; my = e.clientY/H; });
+  addEventListener('click', ()=>{ li=(li+1)%lines.length; });
+  addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='r') { seed = Math.random()*9999; } });
+
+  function draw(t){
+    const tt = t*0.001;
+    ctx.clearRect(0,0,W,H);
+
+    // soft background grain
+    ctx.fillStyle='rgba(0,0,0,.12)';
+    for(let i=0;i<120;i++){
+      const x = (Math.sin(i*12.23+seed)*0.5+0.5)*W;
+      const y = (Math.cos(i*7.77+seed)*0.5+0.5)*H;
+      const r = 8 + 28*(0.5+0.5*Math.sin(tt*0.7+i));
+      const g = ctx.createRadialGradient(x,y,0,x,y,r);
+      g.addColorStop(0, 'rgba(107,227,255,' + (0.02+0.04*mx) + ')');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle=g;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+    }
+
+    // kinetic typography
+    const text = lines[li];
+    const base = Math.min(W,H);
+    const size = Math.max(22, Math.min(64, base*0.07 + mx*18));
+    ctx.font = '900 ' + size + 'px system-ui, -apple-system, Segoe UI, Roboto, PingFang SC, Microsoft YaHei, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const wave = 10 + 28*my;
+    const amp = 6 + 24*mx;
+
+    // Split by characters for Chinese-friendly effect
+    const chars = Array.from(text);
+    const totalW = chars.length * size * 0.82;
+    let x0 = W/2 - totalW/2;
+    for(let i=0;i<chars.length;i++){
+      const x = x0 + i*size*0.82;
+      const y = H/2 + Math.sin(tt*wave + i*0.55)*amp;
+      const glow = 0.35 + 0.35*Math.sin(tt*1.2 + i);
+      ctx.shadowColor = 'rgba(107,227,255,.45)';
+      ctx.shadowBlur = 18*glow;
+      const g = ctx.createLinearGradient(x, y-size, x, y+size);
+      g.addColorStop(0, 'rgba(234,242,255,' + (0.95) + ')');
+      g.addColorStop(1, 'rgba(167,255,131,' + (0.80) + ')');
+      ctx.fillStyle = g;
+      ctx.fillText(chars[i], x, y);
+    }
+
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+</script>
+</body>
+</html>
